@@ -441,7 +441,7 @@ catch (e) {
     console.warn("Error loading `tslib` helper library.");
     throw e;
 }
-function parseTsConfig(tsconfig, context) {
+function parseTsConfig(tsconfig, programmaticOptions, context) {
     var fileName = ts.findConfigFile(process.cwd(), ts.sys.fileExists, tsconfig);
     if (!fileName)
         throw new Error("couldn't find '" + tsconfig + "' in " + process.cwd());
@@ -451,7 +451,12 @@ function parseTsConfig(tsconfig, context) {
         printDiagnostics(context, convertDiagnostic("config", [result.error]));
         throw new Error("failed to parse " + fileName);
     }
-    var configParseResult = ts.parseJsonConfigFileContent(result.config, ts.sys, path.dirname(fileName), getOptionsOverrides(), fileName);
+    var compilerOptions = programmaticOptions;
+    var overrides = getOptionsOverrides();
+    for (var k in overrides) {
+        compilerOptions[k] = overrides[k];
+    }
+    var configParseResult = ts.parseJsonConfigFileContent(result.config, ts.sys, path.dirname(fileName), compilerOptions, fileName);
     return configParseResult;
 }
 function printDiagnostics(context, diagnostics) {
@@ -497,6 +502,7 @@ function typescript(options) {
         abortOnError: true,
         rollupCommonJSResolveHack: false,
         tsconfig: "tsconfig.json",
+        tsOptions: {},
     });
     var rollupConfig;
     var watchMode = false;
@@ -506,7 +512,7 @@ function typescript(options) {
     context.info("Typescript version: " + ts.version);
     context.debug("Options: " + JSON.stringify(options, undefined, 4));
     var filter$$1 = createFilter(options.include, options.exclude);
-    var parsedConfig = parseTsConfig(options.tsconfig, context);
+    var parsedConfig = parseTsConfig(options.tsconfig, options.tsOptions, context);
     var servicesHost = new LanguageServiceHost(parsedConfig);
     var service = ts.createLanguageService(servicesHost, ts.createDocumentRegistry());
     var _cache;

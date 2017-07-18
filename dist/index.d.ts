@@ -1,5 +1,6 @@
 import { IRollupContext } from "./context";
 import { ICode } from "./tscache";
+import * as ts from "typescript";
 export interface IOptions {
     include?: string;
     exclude?: string;
@@ -10,6 +11,7 @@ export interface IOptions {
     abortOnError?: boolean;
     rollupCommonJSResolveHack?: boolean;
     tsconfig?: string;
+    tsOptions?: ts.CompilerOptions;
 }
 export default function typescript(options?: IOptions): {
     options(config: any): void;

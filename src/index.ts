@@ -2,6 +2,7 @@ import { RollupContext } from "./rollupcontext";
 import { IContext, ConsoleContext, IRollupContext, VerbosityLevel } from "./context";
 import { LanguageServiceHost } from "./host";
 import { TsCache, convertDiagnostic, ICode, IDiagnostics } from "./tscache";
+
 import * as ts from "typescript";
 import * as fs from "fs-extra";
 import * as path from "path";
@@ -36,7 +37,7 @@ try
 	throw e;
 }
 
-function parseTsConfig(tsconfig: string, context: IContext)
+function parseTsConfig(tsconfig: string, programmaticOptions: ts.CompilerOptions, context: IContext)
 {
 	const fileName = ts.findConfigFile(process.cwd(), ts.sys.fileExists, tsconfig);
 
@@ -52,7 +53,14 @@ function parseTsConfig(tsconfig: string, context: IContext)
 		throw new Error(`failed to parse ${fileName}`);
 	}
 
-	const configParseResult = ts.parseJsonConfigFileContent(result.config, ts.sys, path.dirname(fileName), getOptionsOverrides(), fileName);
+
+	const compilerOptions = programmaticOptions;
+	const overrides = getOptionsOverrides();
+	for(let k in overrides) {
+		compilerOptions[k] = overrides[k];
+	}
+
+	const configParseResult = ts.parseJsonConfigFileContent(result.config, ts.sys, path.dirname(fileName), compilerOptions, fileName);
 
 	return configParseResult;
 }
@@ -105,6 +113,7 @@ export interface IOptions
 	abortOnError?: boolean;
 	rollupCommonJSResolveHack?: boolean;
 	tsconfig?: string;
+	tsOptions?: ts.CompilerOptions;
 }
 
 export default function typescript(options?: IOptions)
@@ -122,6 +131,7 @@ export default function typescript(options?: IOptions)
 		abortOnError: true,
 		rollupCommonJSResolveHack: false,
 		tsconfig: "tsconfig.json",
+		tsOptions: {},
 	});
 
 	let rollupConfig: any;
@@ -137,7 +147,7 @@ export default function typescript(options?: IOptions)
 
 	const filter = createFilter(options.include, options.exclude);
 
-	const parsedConfig = parseTsConfig(options.tsconfig!, context);
+	const parsedConfig = parseTsConfig(options.tsconfig!, options.tsOptions!, context);
 
 	const servicesHost = new LanguageServiceHost(parsedConfig);
 
